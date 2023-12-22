@@ -27,7 +27,7 @@ export function EyeElement({show}) {
 
         const a = centerX + horizontalPos;
         const b = centerY - verticalPos;
-        ctx.arc(a, b, pupilRad * 0.5, 0, 2 * Math.PI);
+        ctx.arc(a + horizontalPos * 0.3, b - verticalPos * 0.3, pupilRad * 0.5, 0, 2 * Math.PI);
 
         ctx.fillStyle = 'rgba(43, 106, 188, 0.5)'; // Change 'blue' to your desired color
         ctx.fill();
@@ -209,7 +209,7 @@ export function EyeElement({show}) {
         //set x from -20 to 20
         let percentCoordY = tmpCoordY < 0 ? tmpCoordY / (window.innerHeight - canvasCenterY) : tmpCoordY / canvasCenterY;
         percentCoordY = easeInOut(Math.abs(percentCoordY)) * Math.sign(percentCoordY);
-        let eyeMovementY = lerp(verticalPos, percentCoordY * 20, 0.25);
+        let eyeMovementY = lerp(verticalPos, percentCoordY * 25, 0.25);
         setVerticalPos(eyeMovementY);
     }
 

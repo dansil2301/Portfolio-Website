@@ -3,7 +3,7 @@ import {EyeElement} from "./EyeElement";
 
 export function AboutMeTextIndex() {
     const [text, setText] = useState('');
-    const content = ['Hi, my name is Danila.', 'I bring your ideas to reality'];
+    const content = ['Hi, my name is Danila.', 'I bring your ideas to reality.'];
     const [isWritten, setWritten] = useState(false);
     let printedText = '';
 
