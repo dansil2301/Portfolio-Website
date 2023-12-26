@@ -27,11 +27,11 @@ export function EyeElement({show}) {
 
         const a = centerX + horizontalPos;
         const b = centerY - verticalPos;
-        ctx.arc(a + horizontalPos * 0.3, b - verticalPos * 0.3, pupilRad * 0.5, 0, 2 * Math.PI);
+        ctx.arc(a + horizontalPos * 0.3, b - verticalPos * 0.65, pupilRad * 0.5, 0, 2 * Math.PI);
 
-        ctx.fillStyle = 'rgba(43, 106, 188, 0.5)'; // Change 'blue' to your desired color
+        ctx.fillStyle = 'rgba(89, 89, 81, 0.5)'; // Change 'blue' to your desired color
         ctx.fill();
-        ctx.strokeStyle = '#2B6ABC';
+        ctx.strokeStyle = '#595951';
         ctx.lineWidth = 3;
         ctx.stroke();
     }
@@ -41,7 +41,7 @@ export function EyeElement({show}) {
         return (-b + Math.sqrt(D)) / (2*a);
     }
 
-    const hasParavolaTouchedCircle = (x, y, a, b) => {
+    const hasParabolaTouchedCircle = (x, y, a, b) => {
         if (pupilRad**2-40 <= ((x - a)**2 + (y - b)**2) &&
             ((x - a)**2 + (y - b)**2) <= pupilRad**2+40){
             return true;
@@ -49,10 +49,7 @@ export function EyeElement({show}) {
         return false;
     }
 
-    const aboveEyeLid = (ctx, canvas, position, countWidthStep) => {
-        ctx.beginPath();
-        ctx.strokeStyle = 'white';
-
+    const aboveEyeLidParams = (canvas, position) =>{
         let a; let b;
         if (position === "Top"){
             a = horizontalPos;
@@ -62,38 +59,49 @@ export function EyeElement({show}) {
             b = -verticalPos;
         }
 
-        const parabolaStart = canvas.width / 2 - 3;
+        //parabola (x;y) starting coordinate
+        const parabolaStartX = canvas.width / 2 - canvas.width / 2 * 0.1 + (a * 0.3);
+        const parabolaStartY = -b * 0.5;
 
         //constant that is responsible for eye movement on X
-        const parabolaWidthCoef = (parabolaStart - a) / (pupilRad**2);
+        const parabolaWidthCoef = (parabolaStartX - a) / (pupilRad**2);
 
         // count tan
-        let tanA = Math.tan(b / (parabolaStart - a));
+        let tanA = Math.tan((b + parabolaStartY) / (parabolaStartX - a));
 
         // sin and cos calculation for parabola rotation
         let sinA = tanA / Math.sqrt(tanA**2 + 1);
         let cosA = 1 / Math.sqrt(tanA**2 + 1);
-        cosA = cosA == 0 ? 0.000001 : cosA;
-        sinA = sinA == 0 ? 0.000001 : sinA;
+        cosA = cosA === 0 ? 0.000001 : cosA;
+        sinA = sinA === 0 ? 0.000001 : sinA;
 
-        ctx.lineWidth = 8;
+        return {a, b, parabolaStartX, parabolaStartY, parabolaWidthCoef, cosA, sinA};
+    }
+
+    const aboveEyeLid = (ctx, canvas, position, countWidthStep) => {
+        ctx.beginPath();
+        ctx.strokeStyle = 'white';
+
+        let { a, b, parabolaStartX, parabolaStartY, parabolaWidthCoef, cosA, sinA } = aboveEyeLidParams(canvas, position);
+
         const wantedSize = 8;
         const originalSize = 3;
+        ctx.lineWidth = wantedSize;
+
         let countSteps = 0;
-        for (let x = centerX; x >= -centerX; x -= 1.5) {
-            const xsinA = (x - parabolaStart) * sinA;
-            const xcosA = (x - parabolaStart) * cosA;
+        for (let x = centerX + 15; x >= -centerX; x -= 1) {
+            countSteps++;
+            const xsinA = (x - parabolaStartX) * sinA;
+            const xcosA = (x - parabolaStartX) * cosA;
 
             const aForFunc = parabolaWidthCoef * (cosA**2);
             const bForFunc = parabolaWidthCoef * 2 * xsinA * cosA - sinA;
             const cForFunc = xcosA + parabolaWidthCoef * (xsinA**2);
 
-            const y = solve2PoweredFunc(aForFunc, bForFunc, cForFunc);
+            const y = solve2PoweredFunc(aForFunc, bForFunc, cForFunc) - parabolaStartY;
 
-            if (hasParavolaTouchedCircle(x, y, a, b)) {break}
-            countSteps++;
+            if (hasParabolaTouchedCircle(x, y, a, b)) {break}
 
-            //ctx.lineWidth = lineWidth;
             if (position === "Top"){
                 ctx.lineTo(canvas.width / 2 + x, canvas.height / 2 - y);
             } else if (position === "Bottom") {
@@ -102,36 +110,43 @@ export function EyeElement({show}) {
 
             if (countWidthStep) {
                 ctx.lineWidth -= (wantedSize - originalSize) / countWidthStep;
-                if (x%14 === 0){
-                    ctx.stroke();
-                }
+                if (parseInt(x) % 15 === 0){ ctx.stroke(); }
             }
         }
 
-        if (!countWidthStep) {
-            aboveEyeLid(ctx, canvas, position, countSteps);
-        }
-        else {
-            ctx.stroke();
-        }
+        // first time counts how many steps it takes to get to eye pupil. Second time draws a line with correct width
+        if (!countWidthStep) { aboveEyeLid(ctx, canvas, position, countSteps); }
     }
 
-    const middleEyeLidContinueation = (ctx, canvas, position) => {
+    const middleEyeLidContinuation = (ctx, canvas, position) => {
         ctx.beginPath();
 
-        const parabolaStart = canvas.width / 2 - 5;
+        let a; let b;
+        if (position === "Top"){
+            a = -horizontalPos;
+            b = -verticalPos;
+        } else if (position === "Bottom") {
+            a = horizontalPos;
+            b = verticalPos;
+        }
 
-        const parabolaEdge = -canvas.height / 2 + 2;
-        const xCoef = (-parabolaEdge) / (parabolaStart**2);
+        // parabola starting point
+        const parabolaStartX = canvas.width / 2 - canvas.width / 2 * 0.1 + (a * 0.3) + 2;
+        const parabolaStartY = -b * 0.4;
+
+        // current parabola params calculations
+        const parabolaEdge = -canvas.height / 2 + parabolaStartY * 0.5;
+        const xCoef = (-parabolaEdge) / (parabolaStartX**2);
         const freeCoef = parabolaEdge - xCoef*(0**2);
 
-        ctx.lineWidth = 8;
         const wantedSize = 8;
         const originalSize = 4;
-        for (let x = centerX; x >= -centerX; x -= 1) {
-            const y = xCoef * (x + 1.5)**2 + freeCoef + 1;
+        ctx.lineWidth = wantedSize;
 
-            if (x <= parabolaStart - 0.7 && x > -25) {
+        for (let x = centerX; x >= -centerX; x -= 1) {
+            const y = xCoef * (x + 1.5)**2 + freeCoef + 5 - parabolaStartY;
+
+            if (x <= parabolaStartX - 0.7 && x > -25) {
                 ctx.strokeStyle = 'white';
                 ctx.lineWidth -= (wantedSize - originalSize) / (centerX + 25 - 0.7);
 
@@ -141,9 +156,60 @@ export function EyeElement({show}) {
                     ctx.lineTo(canvas.width / 2 - x, canvas.height / 2 + y);
                 }
 
-                if (x % 10 === 0) {
-                    ctx.stroke();
-                }
+                if (parseInt(x) % 15 === 0) { ctx.stroke(); }
+            }
+        }
+    }
+
+    const lastEyeLidReversed = (ctx, canvas, position) => {
+        ctx.beginPath();
+
+        let a; let b;
+        if (position === "Top"){
+            a = -horizontalPos;
+            b = -verticalPos;
+        } else if (position === "Bottom") {
+            a = horizontalPos;
+            b = verticalPos;
+        }
+
+        //prevParabola starting point
+        const parabolaStartPrevX = canvas.width / 2 - canvas.width / 2 * 0.1 + (a * 0.3) + 2;
+        const parabolaStartPrevY = -b * 0.4;
+
+        // prevParabola params
+        const parabolaEdge = -canvas.height / 2 + parabolaStartPrevY * 0.4;
+        const xCoefPrev = (-parabolaEdge) / (parabolaStartPrevX**2);
+        const freeCoefPrev = parabolaEdge - xCoefPrev*(0**2) + 4.5;
+
+        // prevParabola ending point
+        const prevParabolaXedge = 15; // prev graph ended here //
+        const prevParabolaYEdge = -(xCoefPrev * prevParabolaXedge**2 + freeCoefPrev);
+
+        // current parabola starting point
+        const parabolaYEdge = prevParabolaYEdge;
+        const parabolaXEdge = prevParabolaXedge - 12;
+
+        const xCoef = (-b * 0.4 + parabolaYEdge) / (parabolaStartPrevX + parabolaXEdge)**2;
+
+        const wantedSize = 3;
+        const originalSize = 4;
+        ctx.lineWidth = originalSize;
+
+        for (let x = centerX; x >= -centerX; x -= 0.5) {
+            const y = xCoef * (x+parabolaXEdge)**2 - parabolaYEdge;
+
+            if (x <= -15 && x >= -parabolaStartPrevX - 2){
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth += (wantedSize - originalSize) / (centerX + 25 - 0.7);
+
+            if (position === "Bottom"){
+                ctx.lineTo(canvas.width / 2 - x, canvas.height / 2 + y);
+            } else if (position === "Top") {
+                ctx.lineTo(canvas.width / 2 + x, canvas.height / 2 - y);
+            }
+
+            if (parseInt(x) % 15 === 0) { ctx.stroke(); }
             }
         }
     }
@@ -151,23 +217,39 @@ export function EyeElement({show}) {
     const lastEyeLid = (ctx, canvas, position) => {
         ctx.beginPath();
 
-        const parabolaStartInitial = canvas.width / 2 - 5;
+        let a; let b;
+        if (position === "Top"){
+            a = -horizontalPos;
+            b = -verticalPos;
+        } else if (position === "Bottom") {
+            a = horizontalPos;
+            b = verticalPos;
+        }
 
-        const parabolaEdge = -canvas.height / 2 + 2;
-        const xCoefPrev = (-parabolaEdge) / (parabolaStartInitial**2);
-        const freeCoefPrev = parabolaEdge - xCoefPrev*(0**2);
+        //prevParabola starting point
+        const parabolaStartPrevX = canvas.width / 2 - canvas.width / 2 * 0.1 + (a * 0.3) + 2;
+        const parabolaStartPrevY = -b * 0.4;
 
-        const prevParabolaXedge = 15; // prev graph ended here
+        // prevParabola params
+        const parabolaEdge = -canvas.height / 2 + parabolaStartPrevY * 0.4;
+        const xCoefPrev = (-parabolaEdge) / (parabolaStartPrevX**2);
+        const freeCoefPrev = parabolaEdge - xCoefPrev*(0**2) + 4.5;
+
+        // prevParabola ending point
+        const prevParabolaXedge = 15; // prev graph ended here //
         const prevParabolaYEdge = -(xCoefPrev * prevParabolaXedge**2 + freeCoefPrev);
 
-        const parabolaYEdge = (-canvas.height / 2 + 2) * 0.75;
-        const parabolaXEdge = (-canvas.width / 2 + 5) * 1.2;
+        // current parabola starting point
+        const parabolaYEdge = (-canvas.height / 2 + 2) * 0.8 - b*0.1;
+        const parabolaXEdge = (-canvas.width / 2 + 5) * 1.5 - a*0.1;
 
+        // current parabola coef
         const xCoef = (prevParabolaYEdge + parabolaYEdge) / (prevParabolaXedge + parabolaXEdge)**2;
 
-        ctx.lineWidth = 4;
-        const wantedSize = 1.5;
+        const wantedSize = 4; //1.5
         const originalSize = 4;
+        ctx.lineWidth = originalSize;
+
         for (let x = -centerX; x <= centerX; x += 0.5) {
             const y = xCoef * (x+parabolaXEdge)**2 - parabolaYEdge;
 
@@ -181,9 +263,7 @@ export function EyeElement({show}) {
                     ctx.lineTo(canvas.width / 2 - x, canvas.height / 2 + y);
                 }
 
-                if (x % 15 === 0) {
-                    ctx.stroke();
-                }
+                if (parseInt(x) % 15 === 0) { ctx.stroke(); }
             }
         }
     }
@@ -199,64 +279,65 @@ export function EyeElement({show}) {
 
         const tmpCoordX = mouseX < canvasCenterX ? -(canvasCenterX - mouseX) : mouseX - canvasCenterX;
 
-        //set x from -30 to 30
+        //set x from -canvas.width * 0.1 to canvas.width * 0.1
         const percentCoordX = tmpCoordX / canvasCenterX;
-        const eyeMovementX = percentCoordX * 35; // 30 is an edge number that eye can move to
+        const eyeMovementX = percentCoordX * canvas.width * 0.1; // 35 is an edge number that eye can move to
         setHorizontalPos(eyeMovementX);
 
         const tmpCoordY = mouseY < canvasCenterY ? canvasCenterY - mouseY : -(mouseY - canvasCenterY);
 
-        //set x from -20 to 20
+        //set x from -canvas.height * 0.06 to canvas.height * 0.06
         let percentCoordY = tmpCoordY < 0 ? tmpCoordY / (window.innerHeight - canvasCenterY) : tmpCoordY / canvasCenterY;
         percentCoordY = easeInOut(Math.abs(percentCoordY)) * Math.sign(percentCoordY);
-        let eyeMovementY = lerp(verticalPos, percentCoordY * 25, 0.25);
+        let eyeMovementY = lerp(verticalPos, percentCoordY * canvas.height * 0.06, 0.20);
         setVerticalPos(eyeMovementY);
+    }
+
+    const drawEye = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+
+        const eyeImg = document.querySelector('.EyeImg');
+        const eyeImgStyle = window.getComputedStyle(eyeImg);
+
+        canvas.style.width = `${parseFloat(eyeImgStyle.width)}px`;
+        canvas.style.height = `${parseFloat(eyeImgStyle.height)}px`;
+
+        canvas.width = parseFloat(canvas.style.width) * devicePixelRatio;
+        canvas.height = parseFloat(canvas.style.height) * devicePixelRatio;
+
+        ctx.imageSmoothingEnabled = true;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 3;
+
+        pupilRad = canvas.width / 2 * 0.3;
+        centerX = canvas.width / 2;
+        centerY = canvas.height / 2;
+
+        pupil(ctx);
+        innerPupil(ctx);
+        aboveEyeLid(ctx, canvas, "Top");
+        aboveEyeLid(ctx, canvas, "Bottom")
+        middleEyeLidContinuation(ctx, canvas, "Bottom");
+        middleEyeLidContinuation(ctx, canvas, "Top");
+        lastEyeLidReversed(ctx, canvas, "Bottom");
+        lastEyeLidReversed(ctx, canvas, "Top");
+/*        lastEyeLid(ctx, canvas, "Bottom");
+        lastEyeLid(ctx, canvas, "Top");*/
     }
 
     useEffect(() => {
         const canvas = canvasRef.current;
+
         const handleMouseMove = (e) => {
             handleMouseOnMove(e, canvas);
         };
 
-        const drawEye = () => {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-
-            const eyeImg = document.querySelector('.EyeImg');
-            const eyeImgStyle = window.getComputedStyle(eyeImg);
-            const width = parseFloat(eyeImgStyle.width);
-            const height = parseFloat(eyeImgStyle.height);
-
-            const ratio = window.devicePixelRatio || 1;
-            canvas.width = width * ratio;
-            canvas.height = height * ratio;
-            canvas.style.width = `${width}px`;
-            canvas.style.height = `${height}px`;
-            ctx.scale(ratio, ratio);
-
-            ctx.imageSmoothingEnabled = true;
-
-            pupilRad = canvas.width / 2 * 0.3;
-            centerX = canvas.width / 2;
-            centerY = canvas.height / 2;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 3;
-
-            pupil(ctx);
-            innerPupil(ctx);
-            aboveEyeLid(ctx, canvas, "Top");
-            aboveEyeLid(ctx, canvas, "Bottom")
-            middleEyeLidContinueation(ctx, canvas, "Bottom");
-            middleEyeLidContinueation(ctx, canvas, "Top");
-            lastEyeLid(ctx, canvas, "Bottom");
-            lastEyeLid(ctx, canvas, "Top");
-        }
-
         window.addEventListener('mousemove', handleMouseMove);
+
         drawEye();
 
         return () => {

@@ -58,6 +58,11 @@ canvas {
     margin-top: 20%;
 }
 
+.socialBtn {
+    background-color: transparent;
+    border: transparent;
+}
+
 .SocialPanel {
     height: 100%;
     flex-direction: column;
