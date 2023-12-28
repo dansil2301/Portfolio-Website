@@ -114,6 +114,8 @@ canvas {
     width: 350px;
     height: 100%;
     display: flex;
+    align-items: center;
+    flex-direction: column;
     background: #464646;
     border-bottom-right-radius: 20px;
     border-top-right-radius: 20px;
@@ -140,6 +142,47 @@ canvas {
 .HidePage {
     visibility: visible;
     opacity: 50%;
+}
+
+.closeBtn {
+    display: flex;
+    width: 97%;
+    justify-content: end;
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+.WebsiteSections {
+    margin-top: 50px;
+    display: flex;
+    flex-direction: column;
+}
+
+.WebsiteSectionsEl {
+    border: transparent;
+    background-color: transparent;
+    font-family: "PragmaticaCondC", serif;
+    color: var(--main-text-color);
+    font-size: 45px;
+    letter-spacing: 2px;
+    padding: 10px;
+    transition: color ease-in-out 0.3s;
+}
+
+.WebsiteSectionsEl:hover {
+    color: #969696;
+}
+
+.SubsectionsEl {
+    font-size: 30px;
+}
+
+.SideBarWhiteLine {
+    width: 70%;
+    height: 2px;
+    background-color: var(--main-text-color);
+    margin-top: 40px;
+    margin-bottom: 40px;
 }
 
 .IndexCenterElements {

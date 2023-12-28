@@ -40,10 +40,10 @@ function App() {
       <div className="App">
           <div className="MainWrapper" style={{height: '100vh'}}>
               <div className="SideWrapper" ref={sidebarRef}>
-                  <MenuBtn onClick={handleMenuBtnClick} useRef={sidebarRef}/>
+                  <MenuBtn onClick={handleMenuBtnClick} useRef={sidebarRef} />
                   <SocialPanel />
               </div>
-              <SideBarMenu isVisible={isSidebarVisible} />
+              <SideBarMenu isVisible={isSidebarVisible} setSidebarVisible={setSidebarVisible} />
               <AboutMeTextIndex />
               <MemoizedBackgroundParticles />
           </div>

@@ -9,10 +9,11 @@ export const MenuBtn = ({onClick, useRef}) => {
         const computedStyle = window.getComputedStyle(lineElement);
         const opacity = computedStyle.getPropertyValue("opacity");
         if (
-            useRef.current &&
+            (useRef.current &&
             !useRef.current.contains(event.target) &&
             !document.getElementById("SideBarIndex").contains(event.target) &&
-            opacity === "0"
+            opacity === "0") ||
+            (!document.getElementById("SideBarIndex").classList.contains("visible") && opacity === "0")
         ) {
             setClicked(true);
 

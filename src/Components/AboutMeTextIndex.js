@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {EyeElement} from "./EyeElement";
+import {EyeElement} from "./EyeLogic/EyeElement";
 
 export function AboutMeTextIndex() {
     const [text, setText] = useState('');
