@@ -1,16 +1,33 @@
 export class EyeMovementLogic {
+    static #instance = null;
     canvas;
     ctx;
+
     pupilRad;
+    eyeLidPos;
+
     centerX;
     centerY;
 
     constructor(canvas, ctx) {
+        if (EyeMovementLogic.#instance) {
+            return EyeMovementLogic.#instance;
+        }
+
         this.canvas = canvas;
         this.ctx = ctx;
+        this.eyeLidPos = 0;
     }
 
-    EyeMove(horizontalPos, verticalPos, eyeLidPos) {
+    static getInstance(canvas, ctx) {
+        if (!EyeMovementLogic.#instance) {
+            EyeMovementLogic.#instance = new EyeMovementLogic(canvas, ctx);
+        }
+        return EyeMovementLogic.#instance;
+    }
+
+    //Main call method for eye movement
+    EyeMove(horizontalPos, verticalPos) {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.ctx.strokeStyle = 'white';
@@ -33,6 +50,10 @@ export class EyeMovementLogic {
         this.lastEyeLidReversed(horizontalPos, verticalPos, "Top");
     }
 
+    EyeLidMove(eyeLidPos) {
+        this.eyeLidPos = eyeLidPos;
+    }
+
     pupil(horizontalPos, verticalPos) {
         this.ctx.beginPath();
 
@@ -47,9 +68,10 @@ export class EyeMovementLogic {
     innerPupil(horizontalPos, verticalPos) {
         this.ctx.beginPath();
 
+        const distanceToZero = Math.sqrt(horizontalPos**2 + verticalPos**2);
         const a = this.centerX + horizontalPos;
         const b = this.centerY - verticalPos;
-        this.ctx.arc(a + horizontalPos * 0.3, b - verticalPos * 0.65, this.pupilRad * 0.5, 0, 2 * Math.PI);
+        this.ctx.arc(a + horizontalPos * 0.3, b - verticalPos * 0.65, this.pupilRad * 0.6 - distanceToZero*0.1, 0, 2 * Math.PI);
 
         this.ctx.fillStyle = 'rgba(89, 89, 81, 0.5)'; // Change 'blue' to your desired color
         this.ctx.fill();
@@ -140,16 +162,16 @@ export class EyeMovementLogic {
         if (!countWidthStep) { this.aboveEyeLid(horizontalPos, verticalPos, position, countSteps); }
     }
 
-    middleEyeLidContinuation(horizontalPos, verticalPos, position) {
-        this.ctx.beginPath();
-
-        let a; let b;
+    middleEyeLidContinuationParams(horizontalPos, verticalPos, position) {
+        let a; let b; let c;
         if (position === "Top"){
             a = -horizontalPos;
             b = -verticalPos;
+            c = this.eyeLidPos;
         } else if (position === "Bottom") {
             a = horizontalPos;
             b = verticalPos;
+            c = this.eyeLidPos * 0.5;
         }
 
         // parabola starting point
@@ -157,9 +179,17 @@ export class EyeMovementLogic {
         const parabolaStartY = -b * 0.4;
 
         // current parabola params calculations
-        const parabolaEdge = -this.canvas.height / 2 + parabolaStartY * 0.5;
+        const parabolaEdge = -this.canvas.height / 2 + parabolaStartY * 0.5 + c;
         const xCoef = (-parabolaEdge) / (parabolaStartX**2);
         const freeCoef = parabolaEdge - xCoef*(0**2);
+
+        return {parabolaStartX, parabolaStartY, xCoef, freeCoef};
+    }
+
+    middleEyeLidContinuation(horizontalPos, verticalPos, position) {
+        this.ctx.beginPath();
+
+        let { parabolaStartX, parabolaStartY, xCoef, freeCoef } = this.middleEyeLidContinuationParams(horizontalPos, verticalPos, position);
 
         const wantedSize = 8;
         const originalSize = 4;
@@ -178,6 +208,7 @@ export class EyeMovementLogic {
                     this.ctx.lineTo(this.canvas.width / 2 - x, this.canvas.height / 2 + y);
                 }
 
+                //controls steps for drawing
                 if (parseInt(x) % 15 === 0) { this.ctx.stroke(); }
             }
         }
@@ -186,33 +217,29 @@ export class EyeMovementLogic {
     lastEyeLidReversed(horizontalPos, verticalPos, position) {
         this.ctx.beginPath();
 
-        let a; let b;
+        let a; let b; let c;
         if (position === "Top"){
             a = -horizontalPos;
             b = -verticalPos;
+            c = this.eyeLidPos * 0.5;
         } else if (position === "Bottom") {
             a = horizontalPos;
             b = verticalPos;
+            c = this.eyeLidPos;
         }
 
-        //prevParabola starting point
-        const parabolaStartPrevX = this.canvas.width / 2 - this.canvas.width / 2 * 0.1 + (a * 0.3) + 2;
-        const parabolaStartPrevY = -b * 0.4;
-
-        // prevParabola params
-        const parabolaEdge = -this.canvas.height / 2 + parabolaStartPrevY * 0.4;
-        const xCoefPrev = (-parabolaEdge) / (parabolaStartPrevX**2);
-        const freeCoefPrev = parabolaEdge - xCoefPrev*(0**2) + 4.5;
+        let { parabolaStartX, xCoef, freeCoef } = this.middleEyeLidContinuationParams(horizontalPos, verticalPos, position);
+        let xCoefPrev = xCoef; let freeCoefPrev = freeCoef + 4.5; let parabolaStartPrevX = parabolaStartX;
 
         // prevParabola ending point
-        const prevParabolaXedge = 15; // prev graph ended here //
+        const prevParabolaXedge = 15; // prev graph ended here
         const prevParabolaYEdge = -(xCoefPrev * prevParabolaXedge**2 + freeCoefPrev);
 
         // current parabola starting point
-        const parabolaYEdge = prevParabolaYEdge;
+        const parabolaYEdge = prevParabolaYEdge - c;
         const parabolaXEdge = prevParabolaXedge - 12;
 
-        const xCoef = (-b * 0.4 + parabolaYEdge) / (parabolaStartPrevX + parabolaXEdge)**2;
+        xCoef = (-b * 0.4 + parabolaYEdge) / (parabolaStartPrevX + parabolaXEdge)**2;
 
         const wantedSize = 3;
         const originalSize = 4;
@@ -220,7 +247,6 @@ export class EyeMovementLogic {
 
         for (let x = this.centerX; x >= -this.centerX; x -= 0.5) {
             const y = xCoef * (x+parabolaXEdge)**2 - parabolaYEdge;
-
             if (x <= -15 && x >= -parabolaStartPrevX - 2){
                 this.ctx.strokeStyle = 'white';
                 this.ctx.lineWidth += (wantedSize - originalSize) / (this.centerX + 25 - 0.7);
