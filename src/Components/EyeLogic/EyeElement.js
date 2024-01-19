@@ -74,32 +74,16 @@ export function EyeElement({show}) {
         const {canvas, ctx} = setCanvas();
         let eyeMovement = EyeMovementLogic.getInstance(canvas, ctx);
 
-/*        const handleMouseEnter = () => {
-            setIsOverEye(true);
-            //graduallyChangeEyeLidPos(60, isOverEye);
-            //setEyeLidPos(25);
-        };*/
-
-/*        const handleMouseLeave = () => {
-            setIsOverEye(false);
-            //graduallyChangeEyeLidPos(0, isOverEye);
-            //setEyeLidPos(0)
-        };*/
-
         const handleMouseMove = (e) => {
             handleMouseOnMove(e, canvas);
         };
 
-        //if (!isOverEye) { canvas.addEventListener('mouseenter', handleMouseEnter); }
-        //if (isOverEye) { canvas.addEventListener('mouseleave', handleMouseLeave); }
         window.addEventListener('mousemove', handleMouseMove);
 
         eyeMovement.EyeMove(horizontalPos, verticalPos);
         eyeMovement.EyeLidMove(eyeLidPos);
 
         return () => {
-            //canvas.removeEventListener('mouseenter', handleMouseEnter);
-            //canvas.removeEventListener('mouseleave', handleMouseLeave);
             window.removeEventListener('mousemove', handleMouseMove);
         };
     }, [show, horizontalPos, horizontalPos, eyeLidPos]);
